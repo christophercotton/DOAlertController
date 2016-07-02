@@ -31,6 +31,8 @@ class DOAlertAction : NSObject, NSCopying {
     var title: String
     var style: DOAlertActionStyle
     var handler: ((DOAlertAction!) -> Void)!
+    var completionHandler: ((DOAlertAction!) -> Void)?
+    
     var enabled: Bool {
         didSet {
             if (oldValue != enabled) {
@@ -95,26 +97,26 @@ class DOAlertAnimation : NSObject, UIViewControllerAnimatedTransitioning {
         containerView!.addSubview(alertController.view)
         
         UIView.animateWithDuration(0.25,
-            animations: {
-                alertController.overlayView.alpha = 1.0
-                if (alertController.isAlert()) {
-                    alertController.alertView.alpha = 1.0
-                    alertController.alertView.transform = CGAffineTransformMakeScale(1.05, 1.05)
-                } else {
-                    let bounce = alertController.alertView.frame.height / 480 * 10.0 + 10.0
-                    alertController.alertView.transform = CGAffineTransformMakeTranslation(0, -bounce)
-                }
+                                   animations: {
+                                    alertController.overlayView.alpha = 1.0
+                                    if (alertController.isAlert()) {
+                                        alertController.alertView.alpha = 1.0
+                                        alertController.alertView.transform = CGAffineTransformMakeScale(1.05, 1.05)
+                                    } else {
+                                        let bounce = alertController.alertView.frame.height / 480 * 10.0 + 10.0
+                                        alertController.alertView.transform = CGAffineTransformMakeTranslation(0, -bounce)
+                                    }
             },
-            completion: { finished in
-                UIView.animateWithDuration(0.2,
-                    animations: {
-                        alertController.alertView.transform = CGAffineTransformIdentity
-                    },
-                    completion: { finished in
-                        if (finished) {
-                            transitionContext.completeTransition(true)
-                        }
-                })
+                                   completion: { finished in
+                                    UIView.animateWithDuration(0.2,
+                                        animations: {
+                                            alertController.alertView.transform = CGAffineTransformIdentity
+                                        },
+                                        completion: { finished in
+                                            if (finished) {
+                                                transitionContext.completeTransition(true)
+                                            }
+                                    })
         })
     }
     
@@ -123,17 +125,17 @@ class DOAlertAnimation : NSObject, UIViewControllerAnimatedTransitioning {
         let alertController = transitionContext.viewControllerForKey(UITransitionContextFromViewControllerKey) as! DOAlertController
         
         UIView.animateWithDuration(self.transitionDuration(transitionContext),
-            animations: {
-                alertController.overlayView.alpha = 0.0
-                if (alertController.isAlert()) {
-                    alertController.alertView.alpha = 0.0
-                    alertController.alertView.transform = CGAffineTransformMakeScale(0.9, 0.9)
-                } else {
-                    alertController.containerView.transform = CGAffineTransformMakeTranslation(0, alertController.alertView.frame.height)
-                }
+                                   animations: {
+                                    alertController.overlayView.alpha = 0.0
+                                    if (alertController.isAlert()) {
+                                        alertController.alertView.alpha = 0.0
+                                        alertController.alertView.transform = CGAffineTransformMakeScale(0.9, 0.9)
+                                    } else {
+                                        alertController.containerView.transform = CGAffineTransformMakeTranslation(0, alertController.alertView.frame.height)
+                                    }
             },
-            completion: { finished in
-                transitionContext.completeTransition(true)
+                                   completion: { finished in
+                                    transitionContext.completeTransition(true)
         })
     }
 }
@@ -613,24 +615,28 @@ class DOAlertController : UIViewController, UITextFieldDelegate, UIViewControlle
         buttonAreaScrollViewHeightConstraint.constant = buttonAreaScrollViewHeight
     }
     
+    func handleDismiss(action: DOAlertAction) {
+        if (action.handler != nil) {
+            action.handler(action)
+        }
+        
+        dismissViewControllerAnimated(true) {
+            action.completionHandler?(action)
+        }
+    }
+    
     // Button Tapped Action
     func buttonTapped(sender: UIButton) {
         sender.selected = true
         let action = actions[sender.tag - 1] as! DOAlertAction
-        if (action.handler != nil) {
-            action.handler(action)
-        }
-        self.dismissViewControllerAnimated(true, completion: nil)
+        handleDismiss(action)
     }
     
     // Handle ContainerView tap gesture
     func handleContainerViewTapGesture(sender: AnyObject) {
         // cancel action
         let action = actions[cancelButtonTag] as! DOAlertAction
-        if (action.handler != nil) {
-            action.handler(action)
-        }
-        self.dismissViewControllerAnimated(true, completion: nil)
+        handleDismiss(action)
     }
     
     // UIColor -> UIImage

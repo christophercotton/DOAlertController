@@ -31,6 +31,8 @@ public class DOAlertAction : NSObject, NSCopying {
     public var title: String
     public var style: DOAlertActionStyle
     public var handler: ((DOAlertAction!) -> Void)!
+    public var completionHandler: ((DOAlertAction!) -> Void)?
+
     public var enabled: Bool {
         didSet {
             if (oldValue != enabled) {
@@ -613,24 +615,28 @@ public class DOAlertController : UIViewController, UITextFieldDelegate, UIViewCo
         buttonAreaScrollViewHeightConstraint.constant = buttonAreaScrollViewHeight
     }
 
+    public func handleDismiss(action: DOAlertAction) {
+        if (action.handler != nil) {
+            action.handler(action)
+        }
+        
+        dismissViewControllerAnimated(true) {
+            action.completionHandler?(action)
+        }
+    }
+
     // Button Tapped Action
     public func buttonTapped(sender: UIButton) {
         sender.selected = true
         let action = actions[sender.tag - 1] as! DOAlertAction
-        if (action.handler != nil) {
-            action.handler(action)
-        }
-        self.dismissViewControllerAnimated(true, completion: nil)
+        handleDismiss(action)
     }
 
     // Handle ContainerView tap gesture
     public func handleContainerViewTapGesture(sender: AnyObject) {
         // cancel action
         let action = actions[cancelButtonTag - 1] as! DOAlertAction
-        if (action.handler != nil) {
-            action.handler(action)
-        }
-        self.dismissViewControllerAnimated(true, completion: nil)
+        handleDismiss(action)
     }
 
     // UIColor -> UIImage
